@@ -1,406 +1,316 @@
-#Importing the required modules
-import tkinter
+import tkinter as tk
 from tkinter import *
-from tkinter import ttk
-from tkinter import font
 from tkinter import messagebox
 import mysql.connector
+from datetime import datetime
 
-#Connecting to the database and creating table
-db = mysql.connector.connect(
-    user="root",
-    password="charan@996347",
-    host="localhost"
-) 
-my_cursor=db.cursor() #getting the cursor object
-my_cursor.execute("CREATE DATABASE IF NOT EXISTS Shop") #creating the database named library
+# ---------------- DATABASE SETUP ---------------- #
 
-db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-my_cursor=db.cursor()
-#query to create a table products
-query="CREATE TABLE IF NOT EXISTS products (date VARCHAR(10),prodName VARCHAR(20), prodPrice VARCHAR(50))" 
-my_cursor.execute(query) #executing the query
+def connect_db():
+    return mysql.connector.connect(
+        user="root",
+        password="Keeki@041004",
+        host="localhost",
+        database="Shop"
+    )
 
-db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-my_cursor=db.cursor()
-#query to create a table sale
-query="CREATE TABLE IF NOT EXISTS sale (custName VARCHAR(20), date VARCHAR(10), prodName VARCHAR(30),qty INTEGER, price INTEGER )" 
-my_cursor.execute(query) #executing the query
+db = mysql.connector.connect(user="root",
+                             password="Keeki@041004",
+                             host="localhost")
+cursor = db.cursor()
+cursor.execute("CREATE DATABASE IF NOT EXISTS Shop")
+db.close()
 
-#Function to add the product to the database
-def prodtoTable():
-    #Getting the user inputs of product details from the user 
-    pname= prodName.get()
-    price = prodPrice.get()
-    dt = date.get()
-    #Connecting to the database
-    db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-    cursor = db.cursor()
-    
-    #query to add the product details to the table
-    query = "INSERT INTO products(date,prodName,prodPrice) VALUES(%s,%s,%s)" 
-    details = (dt,pname,price)
+db = connect_db()
+cursor = db.cursor()
 
-    #Executing the query and showing the pop up message
-    try:
-        cursor.execute(query,details)
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS products(
+    date VARCHAR(20),
+    prodName VARCHAR(50) PRIMARY KEY,
+    prodPrice INT
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS sale(
+    custName VARCHAR(50),
+    date VARCHAR(20),
+    prodName VARCHAR(50),
+    qty INT,
+    price INT
+)
+""")
+
+db.commit()
+db.close()
+
+# ---------------- LOGIN SYSTEM ---------------- #
+
+def login():
+    username = user_entry.get()
+    password = pass_entry.get()
+
+    if username == "admin" and password == "1234":
+        messagebox.showinfo("Login Success", "Welcome Admin")
+        login_win.destroy()
+        admin_panel()
+    else:
+        messagebox.showerror("Error", "Invalid Credentials")
+
+def admin_login():
+    global login_win, user_entry, pass_entry
+    login_win = Toplevel()
+    login_win.title("Admin Login")
+    login_win.geometry("350x250")
+    login_win.configure(bg="#d4f4dd")
+
+    Label(login_win, text="Admin Login",
+          font=("Arial", 16, "bold"),
+          bg="#d4f4dd").pack(pady=10)
+
+    Label(login_win, text="Username", bg="#d4f4dd").pack()
+    user_entry = Entry(login_win)
+    user_entry.pack()
+
+    Label(login_win, text="Password", bg="#d4f4dd").pack()
+    pass_entry = Entry(login_win, show="*")
+    pass_entry.pack()
+
+    Button(login_win, text="Login",
+           bg="#27ae60", fg="white",
+           command=login).pack(pady=15)
+
+# ---------------- ADMIN FEATURES ---------------- #
+
+def add_product():
+    win = Toplevel()
+    win.title("Add Product")
+    win.configure(bg="#d4f4dd")
+
+    Label(win, text="Add Product",
+          font=("Arial", 14, "bold"),
+          bg="#d4f4dd").pack(pady=10)
+
+    Label(win, text="Date", bg="#d4f4dd").pack()
+    date = Entry(win)
+    date.pack()
+
+    Label(win, text="Product Name", bg="#d4f4dd").pack()
+    name = Entry(win)
+    name.pack()
+
+    Label(win, text="Price", bg="#d4f4dd").pack()
+    price = Entry(win)
+    price.pack()
+
+    def save():
+        db = connect_db()
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO products VALUES(%s,%s,%s)",
+                       (date.get(), name.get(), int(price.get())))
         db.commit()
-        messagebox.showinfo('Success',"Product added successfully")
-    except Exception as e:
-        print("The exception is:",e)
-        messagebox.showinfo("Error","Trouble adding data into Database")
-    
-    wn.destroy()
-#Function to get details of the product to be added
-def addProd(): 
-    global prodName, prodPrice, date, Canvas1,  wn
-    
-    #Creating the window
-    wn = tkinter.Tk() 
-    wn.title("PythonGeeks Shop Management System")
-    wn.configure(bg='mint cream')
-    wn.minsize(width=500,height=500)
-    wn.geometry("700x600")
+        db.close()
+        messagebox.showinfo("Success", "Product Added")
+        win.destroy()
 
-    Canvas1 = Canvas(wn)
-    Canvas1.config(bg='LightBlue1')
-    Canvas1.pack(expand=True,fill=BOTH)
-    
-    headingFrame1 = Frame(wn,bg='LightBlue1',bd=5)
-    headingFrame1.place(relx=0.25,rely=0.1,relwidth=0.5,relheight=0.13)
-    headingLabel = Label(headingFrame1, text="Add a Product", fg='grey19', font=('Courier',15,'bold'))
-    headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
+    Button(win, text="Save",
+           bg="#2ecc71", fg="white",
+           command=save).pack(pady=10)
 
-    labelFrame = Frame(wn)
-    labelFrame.place(relx=0.1,rely=0.4,relwidth=0.8,relheight=0.4)
-        
-    # Getting Date
-    lable1 = Label(labelFrame,text="Date : ", fg='black')
-    lable1.place(relx=0.05,rely=0.3, relheight=0.08)
-        
-    date = Entry(labelFrame)
-    date.place(relx=0.3,rely=0.3, relwidth=0.62, relheight=0.08)
-        
-    # Product Name
-    lable2 = Label(labelFrame,text="Product Name : ", fg='black')
-    lable2.place(relx=0.05,rely=0.45, relheight=0.08)
-        
-    prodName = Entry(labelFrame)
-    prodName.place(relx=0.3,rely=0.45, relwidth=0.62, relheight=0.08)
-        
-    # Product Price
-    lable3 = Label(labelFrame,text="Product Price : ", fg='black')
-    lable3.place(relx=0.05,rely=0.6, relheight=0.08)
-        
-    prodPrice = Entry(labelFrame)
-    prodPrice.place(relx=0.3,rely=0.6, relwidth=0.62, relheight=0.08)
-           
-    #Add Button
-    Btn = Button(wn,text="ADD",bg='#d1ccc0', fg='black',command=prodtoTable)
-    Btn.place(relx=0.28,rely=0.85, relwidth=0.18,relheight=0.08)
-    
-    Quit= Button(wn,text="Quit",bg='#f7f1e3', fg='black',command=wn.destroy)
-    Quit.place(relx=0.53,rely=0.85, relwidth=0.18,relheight=0.08)
-    
-    wn.mainloop()
+def update_product():
+    win = Toplevel()
+    win.title("Update Product")
+    win.configure(bg="#d4f4dd")
 
-#Function to remove the product from the database
-def removeProd():
-    #Getting the product name from the user to be removed
-    name = prodName.get()
-    name = name.lower()
-    
-    #Connecting to the database
-    db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-    cursor = db.cursor()
-    
-    #Query to delete the respective product from the database
-    query = "DELETE from products where LOWER(prodName) = '"+name+"'"
-   #Executing the query and showing the message box
-    try:
-        cursor.execute(query)
+    Label(win, text="Update Product",
+          font=("Arial", 14, "bold"),
+          bg="#d4f4dd").pack(pady=10)
+
+    Label(win, text="Product Name", bg="#d4f4dd").pack()
+    name = Entry(win)
+    name.pack()
+
+    Label(win, text="New Price", bg="#d4f4dd").pack()
+    price = Entry(win)
+    price.pack()
+
+    def update():
+        db = connect_db()
+        cursor = db.cursor()
+        cursor.execute("UPDATE products SET prodPrice=%s WHERE prodName=%s",
+                       (int(price.get()), name.get()))
         db.commit()
-        #cur.execute(deleteIssue)
-        #con.commit()
+        db.close()
+        messagebox.showinfo("Success", "Product Updated")
+        win.destroy()
 
-        messagebox.showinfo('Success',"Product Record Deleted Successfully")
+    Button(win, text="Update",
+           bg="#3498db", fg="white",
+           command=update).pack(pady=10)
 
-    except Exception as e:
-        print("The exception is:",e)
-        messagebox.showinfo("Please check Product Name")
- 
-    wn.destroy()
-#Function to get product details from the user to be deleted
-def delProd(): 
+def search_product():
+    win = Toplevel()
+    win.title("Search Product")
+    win.configure(bg="#d4f4dd")
 
-    global prodName, Canvas1,  wn
-    #Creating a window
-    wn = tkinter.Tk() 
-    wn.title("Shop Management System")
-    wn.configure(bg='mint cream')
-    wn.minsize(width=500,height=500)
-    wn.geometry("700x600")
+    Label(win, text="Search Product",
+          font=("Arial", 14, "bold"),
+          bg="#d4f4dd").pack(pady=10)
 
-    Canvas1 = Canvas(wn)
-    Canvas1.config(bg="misty rose")
-    Canvas1.pack(expand=True,fill=BOTH)
-    
-    headingFrame1 = Frame(wn,bg="misty rose",bd=5)
-    headingFrame1.place(relx=0.25,rely=0.1,relwidth=0.5,relheight=0.13)
-    headingLabel = Label(headingFrame1, text="Delete Product", fg='grey19', font=('Courier',15,'bold'))
-    headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
-    
-    labelFrame = Frame(wn)
-    labelFrame.place(relx=0.1,rely=0.3,relwidth=0.8,relheight=0.5)   
-        
-    # Product Name to Delete
-    lable = Label(labelFrame,text="Product Name : ", fg='black')
-    lable.place(relx=0.05,rely=0.5)
-        
-    prodName = Entry(labelFrame)
-    prodName.place(relx=0.3,rely=0.5, relwidth=0.62)
-    
-    #Delete Button
-    Btn = Button(wn,text="DELETE",bg='#d1ccc0', fg='black',command=removeProd)
-    Btn.place(relx=0.28,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    Quit = Button(wn,text="Quit",bg='#f7f1e3', fg='black', command=wn.destroy)
-    Quit.place(relx=0.53,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    wn.mainloop()
+    Label(win, text="Enter Product Name", bg="#d4f4dd").pack()
+    name = Entry(win)
+    name.pack()
 
-#Function to show all the products in the database
-def viewProds():
-    global  wn
-    #Creating the window to show the products details
-    wn = tkinter.Tk() 
-    wn.title("Shop Management System")
-    wn.configure(bg='mint cream')
-    wn.minsize(width=500,height=500)
-    wn.geometry("700x600")
+    def search():
+        db = connect_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM products WHERE prodName=%s",
+                       (name.get(),))
+        result = cursor.fetchone()
+        db.close()
 
-    Canvas1 = Canvas(wn) 
-    Canvas1.config(bg="old lace")
-    Canvas1.pack(expand=True,fill=BOTH)
+        if result:
+            messagebox.showinfo("Found",
+                                f"Date: {result[0]}\nPrice: ₹{result[2]}")
+        else:
+            messagebox.showerror("Not Found", "Product not found")
 
-    headingFrame1 = Frame(wn,bg='old lace',bd=5)
-    headingFrame1.place(relx=0.25,rely=0.1,relwidth=0.5,relheight=0.13)
+    Button(win, text="Search",
+           bg="#8e44ad", fg="white",
+           command=search).pack(pady=10)
 
-    headingLabel = Label(headingFrame1, text="View Products", fg='black', font = ('Courier',15,'bold'))
-    headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
-    
-    labelFrame = Frame(wn)
-    labelFrame.place(relx=0.1,rely=0.3,relwidth=0.8,relheight=0.5)
-    y = 0.25
+# ---------------- BILLING + RECEIPT ---------------- #
 
-    #Connecting to database
-    db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-    cursor=db.cursor()
-    #query to select all products from the table
-    query = 'SELECT * FROM products'
-    
-    Label(labelFrame, text="%-50s%-50s%-50s"%('Date','Product','Price'),font = ('calibri',11,'bold'),
-    fg='black').place(relx=0.07,rely=0.1)
-    Label(labelFrame, text = "----------------------------------------------------------------------------",fg='black').place (relx=0.05,rely=0.2)
-    #Executing the query and showing the products details
-    try:
-        cursor.execute(query)
-        res = cursor.fetchall() 
-        
-        for i in res:
-            Label(labelFrame,text="%-50s%-50s%-50s"%(i[0],i[1],i[2]) ,fg='black').place(relx=0.07,rely=y)
-            y += 0.1
-    except Exception as e:
-        print("The exception is:",e)
-        messagebox.showinfo("Failed to fetch files from database")
-    
-    Quit= Button(wn,text="Quit",bg='#f7f1e3', fg='black', command=wn.destroy)
-    Quit.place(relx=0.4,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    wn.mainloop()
+def new_customer():
+    win = Toplevel()
+    win.title("Billing")
+    win.configure(bg="#f9d5e5")
 
-#Function to generate the bill
-def bill():
-    global res
-    #Creating a window
-    wn = tkinter.Tk() 
-    wn.title("Shop Management System")
-    wn.configure(bg='lavender blush2')
-    wn.minsize(width=500,height=500)
-    wn.geometry("700x600")
+    Label(win, text="Billing",
+          font=("Arial", 14, "bold"),
+          bg="#f9d5e5").pack(pady=10)
 
-    headingFrame1 = Frame(wn,bg="lavender blush2",bd=5)
-    headingFrame1.place(relx=0.2,rely=0.1,relwidth=0.6,relheight=0.16)
-    headingLabel = Label(headingFrame1, text="Bill", fg='grey19', font=('Courier',15,'bold'))
-    headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
-    
-    labelFrame = Frame(wn)
-    labelFrame.place(relx=0.1,rely=0.3,relwidth=0.8,relheight=0.5)
-    
-    y = 0.35
-    Label(labelFrame, text="%-40s%-40s%-40s%-40s"%('Product','Price','Quantity','Total'),font = ('calibri',11,'bold'),
-    fg='black').place(relx=0.07,rely=0.2)
-    
-    #Getting date and customer name
-    dt=date.get()
-    cName=custName.get()
-    totalBill=0
-    #Connecting to database
-    db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-    cursor=db.cursor()
-    #query to select all the products 
-    query = 'SELECT * FROM products'
-    
-    #Checking if the quantity of the 1st product is entered and calculating price, showing it on window  and adding to database 
-    if(len(name1.get()) != 0):
-        i=res[0]
-        qty=int(name1.get())
-        total=qty*int(i[2])
-        Label(labelFrame,text="%-40s%-40s%-40s%-40s"%(i[1],i[2],qty,total) ,fg='black').place(relx=0.07,rely=y)
-        totalBill+=total
-        y+=0.1
-        
-        query = "INSERT INTO sale(custName,date,prodName,qty,price) VALUES(%s,%s,%s,%s,%s)" 
-        details = (cName,dt,i[1],qty,total)
-        
-    #Checking if the quantity of the 2nd product is entered and calculating price, showing it on window  and adding to database 
-    if(len(name2.get()) != 0):
-        i=res[1]
-        qty=int(name2.get())
-        total=qty*int(i[2])
-        Label(labelFrame,text="%-40s%-40s%-40s%-40s"%(i[1],i[2],qty,total) ,fg='black').place(relx=0.07,rely=y)
-        totalBill+=total
-        y+=0.1
-        query = "INSERT INTO sale(custName,date,prodName,qty,price) VALUES(%s,%s,%s,%s,%s)" 
-        details = (cName,dt,i[1],qty,total)
-    
-    #Checking if the quantity of the 3rd product is entered and calculating price, showing it on window  and adding to database 
-    if(len(name3.get()) != 0):
-        i=res[2]
-        qty=int(name3.get())
-        total=qty*int(i[2])
-        Label(labelFrame,text="%-40s%-40s%-40s%-40s"%(i[1],i[2],qty,total) ,fg='black').place(relx=0.07,rely=y)
-        totalBill+=total
-        y+=0.1
-        query = "INSERT INTO sale(custName,date,prodName,qty,price) VALUES(%s,%s,%s,%s,%s)" 
-        details = (cName,dt,i[1],qty,total)
-    #showing total of the bill
-    Label(labelFrame, text = "------------------------------------------------------------------------------------",fg='black').place (relx=0.05,rely=y)
-    y+=0.1
-    Label(labelFrame,text="\t\t\t\t\t\t\t\t"+str(totalBill) ,fg='black').place(relx=0.07,rely=y)
-    
-    Quit = Button(wn,text="Quit",bg='#f7f1e3', fg='black', command=wn.destroy)
-    Quit.place(relx=0.53,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    wn.mainloop()
-#Function to take the inputs form the user to generate bill    
-def newCust():
-    global wn, name1, name2, name3, date, custName, res
-    #Creating a window
-    wn = tkinter.Tk() 
-    wn.title("PythonGeeks Shop Management System")
-    wn.configure(bg='lavender blush2')
-    wn.minsize(width=500,height=500)
-    wn.geometry("700x600")
+    Label(win, text="Customer Name", bg="#f9d5e5").pack()
+    cname = Entry(win)
+    cname.pack()
 
-    headingFrame1 = Frame(wn,bg="lavender blush2",bd=5)
-    headingFrame1.place(relx=0.2,rely=0.1,relwidth=0.6,relheight=0.16)
-    headingLabel = Label(headingFrame1, text="New Customer", fg='grey19', font=('Courier',15,'bold'))
-    headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
-    
-    lable1 = Label(wn,text="Date : ", fg='black')
-    lable1.place(relx=0.05,rely=0.3, )
-        
-    #Getting date
-    date = Entry(wn)
-    date.place(relx=0.3,rely=0.3, relwidth=0.62)
-    
-    lable2 = Label(wn,text="Customer Name : ", fg='black')
-    lable2.place(relx=0.05,rely=0.4, )
-      
-    #Getting customer name
-    custName = Entry(wn)
-    custName.place(relx=0.3,rely=0.4, relwidth=0.62)
-    
-    labelFrame = Frame(wn)
-    labelFrame.place(relx=0.1,rely=0.45,relwidth=0.8,relheight=0.4)
-    
-    y = 0.3
-    Label(labelFrame, text="Please enter the quantity of the products you want to buy",font = ('calibri',11,'bold'),
-    fg='black').place(relx=0.07,rely=0.1)
-    
-    Label(labelFrame, text="%-50s%-50s%-30s"%('Product','Price','Quantity'),font = ('calibri',11,'bold'),
-    fg='black').place(relx=0.07,rely=0.2)
-    
-    #Connecting to the database
-    db=mysql.connector.connect(user="root",password="charan@996347",host="localhost",database='Shop') 
-    cursor=db.cursor()
-    query = 'SELECT * FROM products'
+    db = connect_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM products")
+    products = cursor.fetchall()
+    db.close()
 
-    cursor.execute(query)
-    res = cursor.fetchall() 
-    print(res)
-    c=1
-    
-    #Showing all the products and creating entries to take the input of the quantity
-    i=res[0]
-    Label(labelFrame,text="%-50s%-50s"%(i[1],i[2]) ,fg='black').place(relx=0.07,rely=y)
-    name1 = Entry(labelFrame)
-    name1.place(relx=0.6,rely=y, relwidth=0.2)
-    y += 0.1
-    
-    i=res[1]
-    Label(labelFrame,text="%-50s%-50s"%(i[1],i[2]) ,fg='black').place(relx=0.07,rely=y)
-    name2 = Entry(labelFrame)
-    name2.place(relx=0.6,rely=y, relwidth=0.2)
-    y += 0.1
-    
-    i=res[2]
-    Label(labelFrame,text="%-50s%-50s"%(i[1],i[2]) ,fg='black').place(relx=0.07,rely=y)
-    name3 = Entry(labelFrame)
-    name3.place(relx=0.6,rely=y, relwidth=0.2)
-    y += 0.1
-    
-     #Button to generate bill
-    Btn= Button(wn,text="Generate Bill",bg='#d1ccc0', fg='black',command=bill)
-    Btn.place(relx=0.28,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    Quit = Button(wn,text="Quit",bg='#f7f1e3', fg='black', command=wn.destroy)
-    Quit.place(relx=0.55,rely=0.9, relwidth=0.18,relheight=0.08)
+    entries = []
 
-    wn.mainloop()
+    for item in products:
+        frame = Frame(win, bg="#f9d5e5")
+        frame.pack()
 
-#Creating the mail window
-wn = tkinter.Tk() 
-wn.title("Shop Management System")
-wn.configure(bg='honeydew2')
-wn.minsize(width=500,height=500)
-wn.geometry("700x600")
+        Label(frame, text=f"{item[1]} - ₹{item[2]}",
+              bg="#f9d5e5").pack(side=LEFT, padx=10)
 
-headingFrame1 = Frame(wn,bg="snow3",bd=5)
-headingFrame1.place(relx=0.2,rely=0.1,relwidth=0.6,relheight=0.16)
-headingLabel = Label(headingFrame1, text="Welcome to \n Shop Management System", fg='grey19', font=('Courier',15,'bold'))
-headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
+        qty = Entry(frame, width=5)
+        qty.pack(side=LEFT)
+        entries.append((item, qty))
 
-#Button to add a new product
-btn1 = Button(wn,text="Add a Product",bg='LightBlue1', fg='black', width=20,height=2, command=addProd)
-btn1['font'] = font.Font( size=12)
-btn1.place(x=270,y=175)
+    def generate_bill():
+        total = 0
+        receipt_text = "------ SHOP RECEIPT ------\n"
+        receipt_text += f"Customer: {cname.get()}\n"
+        receipt_text += f"Date: {datetime.now()}\n\n"
 
-#Button to delete a product
-btn2 = Button(wn,text="Delete a Product",bg='misty rose', fg='black',width=20,height=2,command=delProd)
-btn2['font'] = font.Font( size=12)
-btn2.place(x=270,y=255)
+        db = connect_db()
+        cursor = db.cursor()
 
-#Button to view all products
-btn3 = Button(wn,text="View Products",bg='old lace', fg='black',width=20,height=2,command=viewProds)
-btn3['font'] = font.Font( size=12)
-btn3.place(x=270,y=335)
+        for item, qty in entries:
+            if qty.get() != "":
+                quantity = int(qty.get())
+                price = int(item[2])
+                amount = quantity * price
+                total += amount
 
-#Button to add a new sale and generate bill
-btn4 = Button(wn,text="New Customer",bg='lavender blush2', fg='black', width=20,height=2,command = newCust)
-btn4['font'] = font.Font( size=12)
-btn4.place(x=270,y=415)
+                receipt_text += f"{item[1]} x {quantity} = ₹{amount}\n"
 
+                cursor.execute(
+                    "INSERT INTO sale VALUES(%s,%s,%s,%s,%s)",
+                    (cname.get(), datetime.now(),
+                     item[1], quantity, amount)
+                )
 
-wn.mainloop() 
+        receipt_text += "\n--------------------------\n"
+        receipt_text += f"Total: ₹{total}"
+
+        db.commit()
+        db.close()
+
+        # Save receipt to file
+        filename = f"receipt_{cname.get()}.txt"
+        with open(filename, "w") as f:
+            f.write(receipt_text)
+
+        messagebox.showinfo("Receipt Generated",
+                            f"Receipt saved as {filename}")
+
+    Button(win, text="Generate Receipt",
+           bg="#e74c3c", fg="white",
+           command=generate_bill).pack(pady=15)
+
+# ---------------- PANELS ---------------- #
+
+def admin_panel():
+    panel = Toplevel()
+    panel.title("Admin Panel")
+    panel.configure(bg="#d4f4dd")
+
+    Label(panel, text="Admin Panel",
+          font=("Arial", 16, "bold"),
+          bg="#d4f4dd").pack(pady=10)
+
+    Button(panel, text="Add Product",
+           bg="#2ecc71", fg="white",
+           width=20, command=add_product).pack(pady=5)
+
+    Button(panel, text="Update Product",
+           bg="#3498db", fg="white",
+           width=20, command=update_product).pack(pady=5)
+
+    Button(panel, text="Search Product",
+           bg="#8e44ad", fg="white",
+           width=20, command=search_product).pack(pady=5)
+
+def user_panel():
+    panel = Toplevel()
+    panel.title("User Panel")
+    panel.configure(bg="#f9d5e5")
+
+    Label(panel, text="User Panel",
+          font=("Arial", 16, "bold"),
+          bg="#f9d5e5").pack(pady=10)
+
+    Button(panel, text="New Customer",
+           bg="#c0392b", fg="white",
+           width=20, command=new_customer).pack(pady=15)
+
+# ---------------- MAIN WINDOW ---------------- #
+
+root = tk.Tk()
+root.title("Shop Management System")
+root.geometry("500x400")
+root.configure(bg="#a8d8ea")
+
+Label(root, text="Shop Management System",
+      font=("Arial", 18, "bold"),
+      bg="#a8d8ea").pack(pady=30)
+
+Button(root, text="Admin Login",
+       bg="#27ae60", fg="white",
+       width=20, height=2,
+       command=admin_login).pack(pady=15)
+
+Button(root, text="User Panel",
+       bg="#c0392b", fg="white",
+       width=20, height=2,
+       command=user_panel).pack(pady=15)
+
+root.mainloop()
